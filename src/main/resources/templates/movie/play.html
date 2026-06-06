@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title th:text="${movie.title} + ' - Watch Now | MovieRec'">Play Movie</title>
+  <link rel="icon" type="image/svg+xml" sizes="any" th:href="@{/favicon.svg(v=2)}"/>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body class="play-page">
+<div th:replace="~{fragments :: navbar}"></div>
+<div th:replace="~{fragments :: mobileNav('movies')}"></div>
+
+<!-- Lights Out Overlay -->
+<div id="lightsOutOverlay" class="lights-out-overlay" onclick="toggleLightsOut()"></div>
+
+<main class="player-main-container">
+  <div class="player-header">
+    <div class="player-title-box">
+      <p class="player-subtitle">Now Streaming</p>
+      <h1 class="player-movie-title" th:text="${movie.title}">Movie Title</h1>
+      
+      <div class="player-actions-row">
+        <div class="server-switcher" th:if="${server1 != null}">
+          <button class="server-pill active" data-server="1" th:data-src="${server1}" onclick="switchServer(this)">Server 1</button>
+          <button class="server-pill" data-server="2" th:data-src="${server2}" onclick="switchServer(this)">Server 2</button>
+        </div>
+        
+        <button id="lightsOutBtn" class="lights-out-btn" onclick="toggleLightsOut()">
+          <i class="ph ph-lamp"></i>
+          <span>Lights Out</span>
+        </button>
+      </div>
+    </div>
+    
+    <div style="display:flex;gap:12px">
+       <a class="btn btn-ghost" th:href="@{/movies/{id}(id=${movie.movieId})}">
+         <i class="ph ph-arrow-left"></i> Back to Detail
+       </a>
+    </div>
+  </div>
+
+  <!-- Player Wrapper -->
+  <div class="player-wrapper" id="playerWrapper">
+    <div th:if="${server1 != null}" style="width:100%;height:100%">
+      <iframe id="mainPlayer" th:src="${server1}"
+              class="player-iframe"
+              allowfullscreen frameborder="0"></iframe>
+    </div>
+    
+    <div th:unless="${server1 != null}"
+         class="empty-comments-state" style="padding:100px 20px;height:100%;display:flex;flex-direction:column;justify-content:center">
+      <i class="ph ph-warning-circle" style="font-size:3rem;margin-bottom:16px;opacity:0.5"></i>
+      <p>This movie is currently unavailable for streaming (IMDb/TMDB ID missing).</p>
+    </div>
+  </div>
+
+  <!-- Player Info & Meta - Reorganized into detail-grid -->
+  <div class="detail-grid" style="margin-top: var(--space-6); padding-top: 0;">
+    <!-- LEFT COLUMN -->
+    <div class="detail-left">
+      <!-- Description Card -->
+      <div class="detail-card">
+        <h3><i class="ph-bold ph-book-open" style="margin-right:6px;vertical-align:-3px;color:var(--text-secondary)"></i> Overview</h3>
+        <div class="genre-tags" style="margin-bottom:16px">
+          <span class="genre-tag" th:each="g : ${movie.genres}" th:text="${g.genreName}">Genre</span>
+        </div>
+        <p class="text-secondary-md" style="line-height:1.6;color:rgba(255,255,255,0.7)" th:text="${movie.description}">Description</p>
+      </div>
+
+      <!-- Comments Section moved into left column -->
+      <section class="play-comments-section" style="margin-top: 0; border-top: none; padding-top: 0;">
+        <div class="play-comments-header">
+          <i class="ph-fill ph-chat-circle-text" style="font-size:1.5rem;color:var(--red)"></i>
+          <h2>Discussion <span class="text-muted-sm" th:text="'(' + ${#lists.size(comments)} + ')'"></span></h2>
+        </div>
+
+        <div class="detail-card" style="margin-bottom:32px">
+          <div th:if="${currentUser != null}">
+            <textarea id="comment-input" class="form-control"
+                      placeholder="What did you think of the movie?" rows="3"
+                      style="background:rgba(255,255,255,0.03);border-color:rgba(255,255,255,0.1);padding:16px;font-size:1rem"></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px">
+              <button class="btn btn-primary" onclick="submitCommentInline(this)">Post Comment</button>
+            </div>
+          </div>
+          <div th:if="${currentUser == null}" class="comment-login-box" style="text-align:center;padding:24px">
+            <p class="text-secondary-md">Want to join the discussion?</p>
+            <a href="/auth/login" class="btn btn-primary btn-sm" style="margin-top:12px">Login to Comment</a>
+          </div>
+        </div>
+
+        <div id="comment-list">
+          <div class="comment-box" th:each="c : ${comments}" style="margin-bottom:20px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05)">
+            <div class="comment-header">
+              <span class="comment-author">
+                <i class="ph-fill ph-user" style="color:var(--text-secondary);margin-right:8px"></i>
+                <span th:text="${c.user.username}" style="font-weight:600">User</span>
+              </span>
+              <span class="comment-date" th:text="${#temporals.format(c.createdAt, 'MMM dd, yyyy HH:mm')}">Date</span>
+            </div>
+            <p class="comment-text" th:text="${c.commentText}" style="margin-top:10px;font-size:0.95rem;line-height:1.5;color:rgba(255,255,255,0.85)">Comment text</p>
+          </div>
+          
+          <div th:if="${#lists.isEmpty(comments)}" class="empty-comments-state" id="noCommentsState">
+            <div style="font-size:3rem;margin-bottom:12px;color:rgba(255,255,255,0.1)">
+              <i class="ph-fill ph-chat-circle-dots"></i>
+            </div>
+            <p>No comments yet. Start the conversation!</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- RIGHT COLUMN (SIDEBAR) -->
+    <div class="detail-sidebar">
+      <!-- Meta Card -->
+      <div class="detail-card" style="margin-bottom:20px; background:rgba(255,255,255,0.02)">
+         <h3><i class="ph-bold ph-info" style="margin-right:8px"></i> Details</h3>
+         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+           <span class="text-muted-sm">Release Year</span>
+           <span th:text="${movie.releaseYear}" style="font-weight:600">2024</span>
+         </div>
+         <div style="display:flex;justify-content:space-between;margin-bottom:12px">
+           <span class="text-muted-sm">Rating</span>
+           <span style="font-weight:600">
+             <i class="ph-fill ph-star" style="color:var(--gold)"></i> 
+             <span th:text="${#numbers.formatDecimal(movie.averageRating,1,1)}">4.5</span>
+           </span>
+         </div>
+      </div>
+
+      <!-- Similar Movies Card -->
+      <div class="detail-card" th:if="${!#lists.isEmpty(similarMovies)}" style="background:rgba(255,255,255,0.02)">
+        <h3><i class="ph-fill ph-film-strip" style="margin-right:8px"></i> Similar Movies</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <a th:each="sm : ${similarMovies}"
+             th:href="@{/movies/{id}/play(id=${sm.movieId})}"
+             class="similar-movie-link">
+            <img th:if="${sm.posterUrl != null and !#strings.isEmpty(sm.posterUrl)}"
+                 th:src="${sm.posterUrl}" th:alt="${sm.title}"
+                 class="similar-movie-poster"/>
+            <div class="similar-movie-info">
+              <div class="similar-movie-title" th:text="${sm.title}">Title</div>
+              <div class="similar-movie-year" th:text="${sm.releaseYear}">Year</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Resume Watch Modal -->
+<div id="resumeModal" class="resume-modal" th:if="${lastDuration != null and lastDuration > 10}">
+  <div class="resume-content">
+    <div class="resume-icon">
+      <i class="ph-fill ph-play"></i>
+    </div>
+    <div class="resume-text">Hệ thống ghi nhận bạn đã từng xem phim này trước đó! Bạn có muốn xem tiếp từ đoạn:</div>
+    <div class="resume-timestamp" id="resumeTimestampDisplay">00:00:00</div>
+    <div class="resume-actions">
+      <button class="resume-btn resume-btn-primary" onclick="resumeFromLast()">Xem tiếp</button>
+      <button class="resume-btn resume-btn-secondary" onclick="closeResumeModal()">Từ đầu</button>
+    </div>
+  </div>
+</div>
+
+<script th:src="@{/js/app.js}"></script>
+<script th:inline="javascript">
+  const MOVIE_ID = /*[[${movie.movieId}]]*/ 0;
+  const LAST_DURATION = /*[[${lastDuration}]]*/ 0;
+  let startTime = Date.now();
+  let totalWatchedSeconds = LAST_DURATION || 0;
+  let sessionSeconds = 0;
+
+  // Format seconds to HH:MM:SS
+  function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    return [h, m, s].map(v => v < 10 ? '0' + v : v).join(':');
+  }
+
+  // Progress Tracking
+  function updateProgress() {
+    sessionSeconds = Math.floor((Date.now() - startTime) / 1000);
+    const total = (LAST_DURATION || 0) + sessionSeconds;
+    
+    // Estimate progress (assume 100 mins = 6000s for recommendation purposes if real duration is unknown)
+    const estimatedDuration = 6000;
+    const progress = Math.min((total / estimatedDuration) * 100, 99.9).toFixed(2);
+    
+    const body = new URLSearchParams();
+    body.append('duration', total);
+    body.append('progress', progress);
+
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+    if (csrfMeta && csrfHeader) headers[csrfHeader.content] = csrfMeta.content;
+
+    fetch(`/api/movies/${MOVIE_ID}/watch`, { 
+      method: 'POST', 
+      headers,
+      body: body
+    }).catch(console.error);
+  }
+
+  // Save progress every 30s
+  updateProgress(); // Initial call to mark as started
+  setInterval(updateProgress, 30000);
+  window.onbeforeunload = updateProgress;
+
+  // Resume Logic
+  function resumeFromLast() {
+    const player = document.getElementById('mainPlayer');
+    if (player && LAST_DURATION > 0) {
+      const currentSrc = player.src;
+      // Append start parameter (works for 2Embed and SuperEmbed)
+      const connector = currentSrc.includes('?') ? '&' : '?';
+      player.src = currentSrc + connector + 'start=' + LAST_DURATION;
+    }
+    closeResumeModal();
+  }
+
+  function closeResumeModal() {
+    document.getElementById('resumeModal').classList.remove('active');
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (LAST_DURATION > 10) {
+      document.getElementById('resumeTimestampDisplay').textContent = formatTime(LAST_DURATION);
+      setTimeout(() => {
+        document.getElementById('resumeModal').classList.add('active');
+      }, 1000);
+    }
+  });
+
+  function switchServer(btn) {
+    const src = btn.dataset.src;
+    if (!src) return;
+    
+    // Update UI
+    document.querySelectorAll('.server-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    
+    // Update Iframe
+    const player = document.getElementById('mainPlayer');
+    if (player) {
+      player.style.opacity = '0.5';
+      player.src = src;
+      player.onload = () => player.style.opacity = '1';
+    }
+    
+    // Save preference
+    localStorage.setItem('preferredServer', btn.dataset.server);
+  }
+
+  function toggleLightsOut() {
+    const overlay = document.getElementById('lightsOutOverlay');
+    const wrapper = document.getElementById('playerWrapper');
+    const btn = document.getElementById('lightsOutBtn');
+    
+    const isActive = overlay.classList.toggle('active');
+    wrapper.classList.toggle('lights-out', isActive);
+    btn.classList.toggle('active', isActive);
+    
+    if (isActive) {
+      btn.querySelector('span').textContent = 'Lights On';
+      btn.querySelector('i').className = 'ph-fill ph-lamp';
+    } else {
+      btn.querySelector('span').textContent = 'Lights Out';
+      btn.querySelector('i').className = 'ph ph-lamp';
+    }
+  }
+
+  // Handle Escape key to turn lights back on
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('lightsOutOverlay');
+      if (overlay && overlay.classList.contains('active')) {
+        toggleLightsOut();
+      }
+    }
+  });
+
+  // Restore preferred server
+  document.addEventListener('DOMContentLoaded', () => {
+    const pref = localStorage.getItem('preferredServer');
+    if (pref) {
+      const btn = document.querySelector(`.server-pill[data-server="${pref}"]`);
+      if (btn && !btn.classList.contains('active')) {
+        switchServer(btn);
+      }
+    }
+  });
+
+  function submitCommentInline(btn) {
+    const input = document.getElementById('comment-input');
+    const text = input.value.trim();
+    if (!text) return;
+
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+    const csrfMeta = document.querySelector('meta[name="_csrf"]');
+    const csrfHeader = document.querySelector('meta[name="_csrf_header"]');
+    if (csrfMeta) headers[csrfHeader.content] = csrfMeta.content;
+
+    btn.disabled = true;
+    btn.textContent = 'Posting…';
+
+    fetch(`/api/movies/${MOVIE_ID}/comment?text=${encodeURIComponent(text)}`, {
+      method: 'POST',
+      headers
+    })
+    .then(r => r.json())
+    .then(data => {
+      const list = document.getElementById('comment-list');
+      const noState = document.getElementById('noCommentsState');
+      if (noState) noState.remove();
+
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })
+                    + ' ' + now.toTimeString().slice(0, 5);
+
+      const html = `
+        <div class="comment-box" style="animation: fadeUp .4s var(--ease) both; margin-bottom: 20px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05)">
+          <div class="comment-header">
+            <span class="comment-author">
+              <i class="ph-fill ph-user" style="color:var(--text-secondary);margin-right:8px"></i>
+              <span style="font-weight:600">${data.username}</span>
+            </span>
+            <span class="comment-date">${dateStr}</span>
+          </div>
+          <p class="comment-text" style="margin-top:10px;font-size:0.95rem;line-height:1.5;color:rgba(255,255,255,0.85)">${data.text}</p>
+        </div>
+      `;
+      
+      list.insertAdjacentHTML('afterbegin', html);
+      input.value = '';
+      btn.disabled = false;
+      btn.textContent = 'Post Comment';
+      showToast('Comment shared! 💬', 'success');
+    })
+    .catch(() => {
+      btn.disabled = false;
+      btn.textContent = 'Post Comment';
+      showToast('Failed to post comment', 'error');
+    });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta name="_csrf" th:content="${_csrf.token}" />
+  <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="MovieRec – AI-powered movie recommendations tailored for you." />
+  <title>MovieRec – Discover Movies You'll Love</title>
+  <link rel="icon" type="image/svg+xml" sizes="any" th:href="@{/favicon.svg(v=2)}" />
+  <link rel="stylesheet" th:href="@{/css/style.css}" />
+</head>
+
+<body class="home-page">
+
+  <div th:replace="~{fragments :: navbar}"></div>
+  <div th:replace="~{fragments :: mobileNav(${activeMenu})}"></div>
+  <div th:replace="~{search-overlay :: searchOverlay}"></div>
+
+  <!-- ── PRELOADER ── -->
+  <div class="preloader" id="preloader">
+    <div class="preloader-vignette"></div>
+    <div class="preloader-particles" id="preloaderParticles"></div>
+    <div class="preloader-aura-ring"></div>
+    <svg class="preloader-logo" viewBox="0 0 64 64" role="img" aria-label="MovieRec Logo">
+      <rect width="64" height="64" rx="14" fill="#000"></rect>
+      <path d="M35 18 h7 a8 8 0 0 1 0 16 h-7 m6 0 l9 12" fill="none" stroke="#FFFFFF" stroke-width="5"
+        stroke-linecap="round" stroke-linejoin="round"></path>
+      <path d="M13 46 V18 l11 16 l11 -16 V46" fill="none" stroke="#E50914" stroke-width="5"
+        stroke-linecap="round" stroke-linejoin="round"></path>
+    </svg>
+    <div class="preloader-brand">
+      <span class="brand-movie">Movie</span><span class="brand-rec">Rec</span>
+    </div>
+    <div class="preloader-bar-container">
+      <div class="preloader-bar-fill"></div>
+    </div>
+    <p class="preloader-text">Loading experience...</p>
+  </div>
+
+  <!-- ── HERO CAROUSEL ── -->
+  <div class="hero-carousel" id="heroCarousel">
+    <div class="hero-nav-dots" id="heroNavDots"></div>
+
+    <th:block th:with="heroMovies=${(recommendations != null and !recommendations.empty) ? recommendations : trending}">
+      <div th:each="movie, iter : ${heroMovies}" 
+           th:if="${iter.index < 5}"
+           class="hero-slide" 
+           th:classappend="${iter.first} ? 'active' : ''"
+           th:data-index="${iter.index}"
+           th:data-trailer-key="${movie.trailerKey}">
+        
+        <div class="hero-slide-bg" 
+             th:style="${movie.backdropUrl != null} ? 'background-image:url(' + ${movie.backdropUrl} + ')' : 
+                       (${movie.posterUrl != null} ? 'background-image:url(' + ${movie.posterUrl} + ')' : '')"></div>
+        
+        <div class="hero-slide-overlay"></div>
+        <div class="hero-video-container"></div>
+
+        <div class="hero-content-wrapper">
+          <div class="hero-slide-info">
+            <div class="hero-eyebrow">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+                <path d="M224,104a8,8,0,0,0-8,8v40a8,8,0,0,0,16,0V112A8,8,0,0,0,224,104Zm-24-32v96a16,16,0,0,1-16,16H72a16,16,0,0,1-16-16V72A16,16,0,0,1,72,56H184A16,16,0,0,1,200,72Zm-16,0H72v96H184ZM32,104a8,8,0,0,0-8,8v40a8,8,0,0,0,16,0V112A8,8,0,0,0,32,104Zm112,56a8,8,0,0,0-8-8H120a8,8,0,0,0,0,16h16A8,8,0,0,0,144,160ZM100.28,94.34a8,8,0,0,0-11,21.32L99,120.66a8,8,0,0,0,11-21.32Zm66.44,21.32a8,8,0,0,0-11-21.32l-9.72,5a8,8,0,0,0,11,21.32ZM128,24A40,40,0,1,0,168,64,40,40,0,0,0,128,24Zm0,64a24,24,0,1,1,24-24A24,24,0,0,1,128,88Z"></path>
+              </svg> AI-Powered Pick
+            </div>
+            <h1 class="hero-movie-title" th:text="${movie.title}">Movie Title</h1>
+            
+            <div class="hero-movie-meta">
+              <span class="hero-movie-year" th:text="${movie.releaseYear}">2024</span>
+              <span class="hero-movie-rating">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#F5C518" viewBox="0 0 256 256">
+                  <path d="M234.5,114.38l-45.1,39.36,13.51,58.6a16,16,0,0,1-23.84,17.34l-51.11-31-51,31a16,16,0,0,1-23.84-17.34L66.61,153.8,21.5,114.38a16,16,0,0,1,9.11-28.06l59.46-5.15,23.21-55.36a15.95,15.95,0,0,1,29.44,0h0L166,81.17l59.44,5.15a16,16,0,0,1,9.11,28.06Z"></path>
+                </svg>
+                <span th:text="${movie.averageRating > 0 ? #numbers.formatDecimal(movie.averageRating,1,1) : 'NR'}">4.5</span>
+              </span>
+              <span class="genre-tag" th:each="g, gIter : ${movie.genres}" th:if="${gIter.index < 2}" th:text="${g.genreName}">Genre</span>
+            </div>
+
+            <p class="hero-movie-desc" th:text="${movie.description}">Description</p>
+
+            <div class="hero-actions">
+              <a th:href="@{/movies/{id}(id=${movie.movieId})}" class="btn btn-white btn-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
+                  <path d="M240,128a15.84,15.84,0,0,1-7.76,13.63l-152,88A15.82,15.82,0,0,1,72,232a15.88,15.88,0,0,1-8-2.12A15.81,15.81,0,0,1,56,216V40a15.81,15.81,0,0,1,8-13.88,15.88,15.88,0,0,1,8-2.12,15.82,15.82,0,0,1,8.24,2.37l152,88A15.84,15.84,0,0,1,240,128Z"></path>
+                </svg> Play
+              </a>
+              <button th:if="${currentUser != null}" 
+                      class="btn btn-outline btn-xl"
+                      th:onclick="|toggleWatchlist(${movie.movieId}, this)|">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
+                  <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm48-88a8,8,0,0,1-8,8H136v32a8,8,0,0,1-16,0V136H88a8,8,0,0,1,0-16h32V88a8,8,0,0,1,16,0v32h32A8,8,0,0,1,176,128Z"></path>
+                </svg> Watchlist
+              </button>
+              <a th:href="@{/movies/{id}(id=${movie.movieId})}" class="btn btn-ghost btn-xl">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256">
+                  <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm16-40a8,8,0,0,1-8,8,16,16,0,0,1-16-16V128a8,8,0,0,1,0-16,16,16,0,0,1,16,16v32A8,8,0,0,1,144,176ZM112,84a12,12,0,1,1,12,12A12,12,0,0,1,112,84Z"></path>
+                </svg> Info
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </th:block>
+  </div>
+
+  <!-- ── CONTINUE WATCHING ── -->
+  <div class="section reveal" th:if="${currentUser != null and continueWatching != null and !continueWatching.empty}">
+    <div class="section-header">
+      <h2 class="section-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256" style="margin-right:8px; vertical-align:middle">
+          <path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm0,192a88,88,0,1,1,88-88A88.1,88.1,0,0,1,128,216Zm64-88a8,8,0,0,1-8,8H128a8,8,0,0,1-8-8V72a8,8,0,0,1,16,0v48h48A8,8,0,0,1,192,128Z"></path>
+        </svg>
+        Continue <span>Watching</span>
+      </h2>
+      <a href="/user/history" class="view-all">View History →</a>
+    </div>
+    <div class="movies-row">
+      <th:block th:each="wh : ${continueWatching}">
+        <div th:replace="~{fragments :: movieCard(movie=${wh.movie}, progress=${wh.progress})}"></div>
+      </th:block>
+    </div>
+  </div>
+
+  <!-- ── PERSONALIZED ── -->
+  <div class="section reveal" th:if="${currentUser != null and recommendations != null and !recommendations.empty}">
+    <div class="section-header">
+      <h2 class="section-title section-title--lg">
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" fill="currentColor" viewBox="0 0 256 256"
+          style="margin-right:8px; vertical-align:middle">
+          <path
+            d="M239.29,144.29l-49.95,14.65a25.86,25.86,0,0,0-17.4,17.4l-14.65,49.95a15.89,15.89,0,0,1-30.58,0l-14.65-49.95a25.86,25.86,0,0,0-17.4-17.4l-49.95-14.65a15.89,15.89,0,0,1,0-30.58l49.95-14.65a25.86,25.86,0,0,0,17.4-17.4l14.65-49.95a15.89,15.89,0,0,1,30.58,0l14.65,49.95a25.86,25.86,0,0,0,17.4,17.4l49.95,14.65A15.89,15.89,0,0,1,239.29,144.29Z">
+          </path>
+        </svg>
+        Recommended <span>For You</span>
+      </h2>
+      <a href="/user/recommendations" class="view-all">View all →</a>
+    </div>
+    <div class="movies-row">
+      <th:block th:each="movie : ${recommendations}">
+        <div class="movie-card-wrapper">
+          <div class="rec-badge">AI Pick</div>
+          <div th:replace="~{fragments :: movieCard(${movie})}"></div>
+        </div>
+      </th:block>
+    </div>
+  </div>
+
+  <!-- ── GENRE PICKS ── -->
+  <div class="section reveal" th:if="${currentUser != null and genrePicks != null and !genrePicks.empty}">
+    <div class="section-header">
+      <h2 class="section-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"
+          style="margin-right:8px; vertical-align:middle">
+          <path
+            d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM88,144a16,16,0,1,1,16-16A16,16,0,0,1,88,144Zm80,0a16,16,0,1,1,16-16A16,16,0,0,1,168,144Z">
+          </path>
+        </svg>
+        Based on Your <span>Taste</span>
+      </h2>
+    </div>
+    <div class="movies-row">
+      <th:block th:each="movie : ${genrePicks}">
+        <div th:replace="~{fragments :: movieCard(${movie})}"></div>
+      </th:block>
+    </div>
+  </div>
+
+  <!-- ── TRENDING ── -->
+  <div class="section reveal" th:if="${trending != null and !trending.empty}">
+    <div class="section-header">
+      <h2 class="section-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"
+          style="margin-right:8px; vertical-align:middle">
+          <path
+            d="M189.59,41.9a8,8,0,0,0-8.89-2.22c-15.65,6.58-30.82,23.1-43.24,47L136.19,89a32.08,32.08,0,0,1-43,4,8,8,0,0,0-12,9.31c4.54,12.57,6.86,24.16,6.86,34.46,0,16.29-6,31.25-16.89,42.06A64.08,64.08,0,0,1,48,157.17C48,114.68,81.18,83.51,87.65,77.6A8,8,0,0,0,84,62.88c-10.45,2-22,6.95-34.19,14.63A8,8,0,0,0,46,88.76C30.69,111.45,24,136.7,24,161.42A96,96,0,0,0,209,211.33c20.3-24.84,23.32-55.93,8.71-89.67-11.41-26.33-28.8-39.73-35-43.91C187.91,74.1,192.83,63,197.35,50a8,8,0,0,0-7.76-10.74Z">
+          </path>
+        </svg>
+        <span>Trending</span> Now
+      </h2>
+      <a href="/movies" class="view-all">View all →</a>
+    </div>
+    <div class="movies-row">
+      <th:block th:each="movie : ${trending}">
+        <div th:replace="~{fragments :: movieCard(${movie})}"></div>
+      </th:block>
+    </div>
+  </div>
+
+  <!-- ── TOP RATED ── -->
+  <div class="section reveal" th:if="${topRated != null and !topRated.empty}">
+    <div class="section-header">
+      <h2 class="section-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#F5C518" viewBox="0 0 256 256"
+          style="margin-right:8px; vertical-align:middle">
+          <path
+            d="M234.5,114.38l-45.1,39.36,13.51,58.6a16,16,0,0,1-23.84,17.34l-51.11-31-51,31a16,16,0,0,1-23.84-17.34L66.61,153.8,21.5,114.38a16,16,0,0,1,9.11-28.06l59.46-5.15,23.21-55.36a15.95,15.95,0,0,1,29.44,0h0L166,81.17l59.44,5.15a16,16,0,0,1,9.11,28.06Z">
+          </path>
+        </svg>
+        <span>Top Rated</span> Movies
+      </h2>
+    </div>
+    <div class="movies-row">
+      <th:block th:each="movie : ${topRated}">
+        <div th:replace="~{fragments :: movieCard(${movie})}"></div>
+      </th:block>
+    </div>
+  </div>
+
+  <!-- ── NEW RELEASES ── -->
+  <div class="section reveal" th:if="${newReleases != null and !newReleases.empty}">
+    <div class="section-header">
+      <h2 class="section-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"
+          style="margin-right:8px; vertical-align:middle">
+          <path
+            d="M224,48H32A16,16,0,0,0,16,64V192a16,16,0,0,0,16,16H224a16,16,0,0,0,16-16V64A16,16,0,0,0,224,48ZM98.74,64l18.29,48H73.05L54.76,64ZM149.88,64l18.29,48h-44L105.9,64Zm51.14,48H157l-18.29-48h43.43L200.41,64H224v48ZM32,112H58.85L40.56,64H32ZM224,192H32V128H224v64Z">
+          </path>
+        </svg>
+        <span>New</span> Releases
+      </h2>
+      <a href="/movies" class="view-all">View all →</a>
+    </div>
+    <div class="movies-grid">
+      <th:block th:each="movie : ${newReleases}">
+        <div th:replace="~{fragments :: movieCard(${movie})}"></div>
+      </th:block>
+    </div>
+  </div>
+
+  <!-- ── GENRES ── -->
+  <div class="section reveal" th:if="${allGenres != null and !allGenres.empty}">
+    <div class="section-header">
+      <h2 class="section-title">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 256 256"
+          style="margin-right:8px; vertical-align:middle">
+          <path
+            d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24ZM88,144a16,16,0,1,1,16-16A16,16,0,0,1,88,144Zm80,0a16,16,0,1,1,16-16A16,16,0,0,1,168,144Z">
+          </path>
+        </svg>
+        Browse by <span>Genre</span>
+      </h2>
+    </div>
+    <div class="genre-list">
+      <a th:each="genre : ${allGenres}" th:href="@{/search(q=${genre.genreName})}" th:text="${genre.genreName}"
+        class="genre-pill">Genre</a>
+    </div>
+  </div>
+
+  <!-- ── GUEST CTA ── -->
+  <div th:if="${currentUser == null}" class="cta-section reveal">
+    <h2>Get Personalized Recommendations</h2>
+    <p>Sign up free to track what you watch, rate movies, and get AI-powered suggestions just for you.</p>
+    <a href="/auth/register" class="btn btn-primary btn-xl">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 256 256"
+        style="margin-right:6px; vertical-align:middle">
+        <path
+          d="M228.69,82.47a24.11,24.11,0,0,0-5.83-14.71,23.88,23.88,0,0,0-15.68-7.79l-49.37-4a55.85,55.85,0,0,0-52,22.2L16,144.5A8,8,0,0,0,22.42,158L68.75,164.6,90,195.94A8,8,0,0,0,96.61,200h.23A8,8,0,0,0,103.54,195.14l76.71-105.86L222.16,92.68A8,8,0,0,0,231,84ZM100.8,179.62,81.33,150.84,40.13,145l77-94a40,40,0,0,1,35.43-15.86l44.33,3.61-91.8,124.64a8,8,0,0,0,.68,9.45,8,8,0,0,0,9.08,3.05L163,165.26l-62.2,14.36Z">
+        </path>
+      </svg>
+      Create Free Account
+    </a>
+  </div>
+
+  <!-- Hero Carousel JS -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const carousel = document.getElementById('heroCarousel');
+      if (!carousel) return;
+
+      const slides = carousel.querySelectorAll('.hero-slide');
+      const dotsContainer = document.getElementById('heroNavDots');
+      let currentIndex = 0;
+      let rotationInterval;
+      let trailerTimeout;
+
+      // Init dots
+      slides.forEach((_, i) => {
+        const dot = document.createElement('div');
+        dot.className = `hero-dot ${i === 0 ? 'active' : ''}`;
+        dot.addEventListener('click', () => goToSlide(i));
+        dotsContainer.appendChild(dot);
+      });
+
+      const dots = dotsContainer.querySelectorAll('.hero-dot');
+
+      function goToSlide(index) {
+        stopTrailer();
+        slides[currentIndex].classList.remove('active');
+        dots[currentIndex].classList.remove('active');
+        
+        currentIndex = index;
+        
+        slides[currentIndex].classList.add('active');
+        dots[currentIndex].classList.add('active');
+        
+        resetInterval();
+      }
+
+      function nextSlide() {
+        goToSlide((currentIndex + 1) % slides.length);
+      }
+
+      function resetInterval() {
+        clearInterval(rotationInterval);
+        rotationInterval = setInterval(nextSlide, 8000);
+      }
+
+      // Trailer logic
+      carousel.addEventListener('mouseenter', startTrailerTimer);
+      carousel.addEventListener('mouseleave', stopTrailer);
+
+      function startTrailerTimer() {
+        clearTimeout(trailerTimeout);
+        trailerTimeout = setTimeout(playTrailer, 1500); // Wait 1.5s before playing
+      }
+
+      function playTrailer() {
+        const activeSlide = slides[currentIndex];
+        const trailerKey = activeSlide.dataset.trailerKey;
+        const videoContainer = activeSlide.querySelector('.hero-video-container');
+
+        if (!trailerKey || !videoContainer) return;
+
+        videoContainer.innerHTML = `
+          <iframe src="https://www.youtube.com/embed/${trailerKey}?autoplay=1&mute=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&enablejsapi=1" 
+                  frameborder="0" allow="autoplay; encrypted-media"></iframe>
+        `;
+        videoContainer.classList.add('active');
+        
+        // Stop after 15s
+        setTimeout(stopTrailer, 15000);
+      }
+
+      function stopTrailer() {
+        clearTimeout(trailerTimeout);
+        slides.forEach(slide => {
+          const container = slide.querySelector('.hero-video-container');
+          if (container) {
+            container.innerHTML = '';
+            container.classList.remove('active');
+          }
+        });
+      }
+
+      resetInterval();
+    });
+  </script>
+
+  <script th:src="@{/js/app.js}"></script>
+</body>
+
+</html>

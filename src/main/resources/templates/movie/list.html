@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta name="_csrf" th:content="${_csrf.token}"/>
+  <meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="description" content="Browse all movies – filter by genre, sort by rating or year."/>
+  <title>Movies – MovieRec</title>
+  <link rel="icon" type="image/svg+xml" sizes="any" th:href="@{/favicon.svg(v=2)}"/>
+  <link rel="stylesheet" th:href="@{/css/style.css}"/>
+</head>
+<body>
+<div th:replace="~{fragments :: navbar}"></div>
+<div th:replace="~{fragments :: mobileNav(${activeMenu})}"></div>
+<div th:replace="~{search-overlay :: searchOverlay}"></div>
+
+<div class="list-layout">
+
+  <!-- ── FILTER SIDEBAR ── -->
+  <aside class="list-filters">
+    <h3><i class="ph-fill ph-mask-happy" style="margin-right:8px;vertical-align:-2px;color:var(--text-secondary)"></i> Genres</h3>
+    <a href="/movies" class="filter-genre-link active">All Movies</a>
+    <a th:each="genre : ${allGenres}"
+       th:href="@{/search(q=${genre.genreName})}"
+       th:text="${genre.genreName}"
+       class="filter-genre-link">Genre</a>
+  </aside>
+
+  <!-- ── MAIN CONTENT ── -->
+  <div>
+    <div class="list-header">
+      <h1 class="section-title" style="font-size:1.5rem;font-weight:800"><i class="ph-fill ph-film-strip" style="margin-right:8px;vertical-align:-3px;color:var(--text-secondary)"></i> All <span>Movies</span></h1>
+      <span style="color:#606060;font-size:.875rem;font-weight:500"
+            th:text="${moviePage.totalElements} + ' titles'">0 titles</span>
+    </div>
+
+    <!-- Skeleton placeholders (shown briefly via JS until cards animate in) -->
+    <div class="movies-grid" id="skeleton-grid" style="display:none">
+      <div th:each="i : ${#numbers.sequence(1,10)}" class="skeleton-card">
+        <div class="skeleton-poster"></div>
+        <div class="skeleton-info">
+          <div class="skeleton-line"></div>
+          <div class="skeleton-line skeleton-line--short"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real grid -->
+    <div class="movies-grid" th:if="${!moviePage.content.empty}" id="movies-grid">
+      <th:block th:each="movie : ${moviePage.content}">
+        <div th:replace="~{fragments :: movieCard(${movie})}"></div>
+      </th:block>
+    </div>
+
+    <div class="empty-state" th:if="${moviePage.content.empty}">
+      <div class="icon"><i class="ph-fill ph-film-strip"></i></div>
+      <h3>No movies yet</h3>
+      <p>Try a different genre or come back later.</p>
+    </div>
+
+    <!-- Pagination -->
+    <div th:if="${moviePage.totalPages > 1}" id="pagination-container"
+         th:attr="data-current=${moviePage.number}, data-total=${moviePage.totalPages}">
+    </div>
+  </div>
+
+</div>
+
+<div style="height:4rem"></div>
+<script th:src="@{/js/app.js}"></script>
+<script th:src="@{/js/pagination.js}"></script>
+<script>
+initPagination('pagination-container', '/movies');
+</script>
+</body>
+</html>

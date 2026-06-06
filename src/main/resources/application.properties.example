@@ -1,0 +1,45 @@
+# Docker config template.
+# Copy file nay thanh application.properties neu can override config runtime.
+# File application.properties da bi .gitignore - KHONG commit len Git.
+
+spring.application.name=movierecommendation
+
+# PostgreSQL trong Docker network
+spring.datasource.url=${LOCAL_DB_URL:jdbc:postgresql://db:5432/movierecommendation}
+spring.datasource.username=postgres
+spring.datasource.password=postgres
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.properties.hibernate.format_sql=false
+spring.jpa.properties.hibernate.physical_naming_strategy=org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+spring.jpa.properties.hibernate.implicit_naming_strategy=org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+
+spring.thymeleaf.cache=false
+spring.thymeleaf.encoding=UTF-8
+server.address=${SERVER_ADDRESS:0.0.0.0}
+server.port=${LOCAL_SERVER_PORT:8080}
+
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=10MB
+
+spring.datasource.hikari.maximum-pool-size=10
+spring.datasource.hikari.minimum-idle=2
+spring.datasource.hikari.connection-timeout=30000
+spring.datasource.hikari.idle-timeout=600000
+spring.datasource.hikari.max-lifetime=1800000
+
+# Optional API keys
+openai.api.key=
+tmdb.api.key=
+app.remember-me-key=localMovieRecRememberMeKeyChangeThis32Chars
+
+# Optional mail configuration
+brevo.api.key=
+app.mail.from=noreply@movierec.local
+app.verification.code-expiration-minutes=10
+app.verification.code-length=6
+
+logging.level.com.example.movierecommendation=INFO
